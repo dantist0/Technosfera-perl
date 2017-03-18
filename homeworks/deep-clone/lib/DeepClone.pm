@@ -1,5 +1,5 @@
 package DeepClone;
-
+use DDP;
 use 5.010;
 use strict;
 use warnings;
@@ -36,11 +36,73 @@ use warnings;
 
 sub clone {
 	my $orig = shift;
-	my $cloned;
-	# ...
-	# deep clone algorith here
-	# ...
-	return $cloned;
+	my $deep_orig = shift || [];
+	my $deep_new = shift || [];
+	my $one = 1;
+	my $contain_supported_objects_flag = shift ||\$one;
+	if (not defined $orig){
+		return undef;
+	} elsif (ref $orig eq ''){
+		return $orig;
+	} elsif (ref $orig eq 'ARRAY'){
+		my $var=[];
+		
+			for my $j(0..$#$deep_orig){
+				if (defined $orig && $deep_orig->[$j] eq $orig){
+					return $deep_new->[$j];
+				}
+			}
+
+		for my $i (0..$#$orig){
+			$var->[$i]=clone($orig->[$i], [@$deep_orig, $orig], [@$deep_new, $var],$contain_supported_objects_flag);			
+		}
+		if ($$contain_supported_objects_flag ==1 ){
+			return $var;
+		} else{
+			return undef;
+		}
+	} elsif (ref $orig eq 'HASH'){
+		my $var={};
+
+		for my $j(0..$#$deep_orig){
+			if ( defined $orig and $deep_orig->[$j] eq $orig){
+				return $deep_new->[$j];
+			}
+		}
+
+		for my $key (keys %$orig){
+			my $key_new;
+			$key_new = clone($key,[@$deep_orig], [@$deep_new]);
+			
+			$var->{$key_new} = clone($orig->{$key}, [@$deep_orig, $orig], [@$deep_new, $var],$contain_supported_objects_flag);
+			
+		}
+		
+		if ($$contain_supported_objects_flag ==1 ){
+			return $var;	
+		}else{
+				return undef;
+			}
+
+	}else {
+		$$contain_supported_objects_flag = -1;
+		return undef;
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 1;
