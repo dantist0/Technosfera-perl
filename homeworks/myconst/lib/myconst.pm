@@ -22,11 +22,11 @@ our $VERSION = '1.00';
 my @vars;
 #say 'в myconst';
 sub import{
-	#p @_;
+	
 
 	my ($package, $filename, $line)= caller;
-	p @_;
-	say $package;
+	
+	
 	my $this_name = shift;
 	return unless @_;
 	my @vars_input = @_;
@@ -35,19 +35,21 @@ sub import{
 			for (keys %{$vars_input[2*$i+1]}){
 				push @vars, {value => $vars_input[2*$i+1]->{$_},
 							name => $_,
-							group => $vars_input[2*$i]}; 
+							group => $vars_input[2*$i],
+							dropped => 0}; 
 			}
 		}elsif (ref  $vars_input[2*$i+1] eq ''){
 			push @vars, {value => $vars_input[2*$i+1],
 							name => $vars_input[2*$i],
-							group => 'all'}; 
+							group => 'all',
+							dropped => 0}; 
 			
 		}else {
 			die;
 		}
 
 	}
-	#p @vars;
+	
 	my $eval_str='';
 	my @export_vars;
 	for my $iter (@vars){
@@ -56,13 +58,52 @@ sub import{
 		}
 		eval 'sub '.$package.'::'.$iter->{name}.'(){ return $iter->{value};}';
 		$eval_str.=' sub \'.$package.\'::'.$iter->{name}.'(){return '.$iter->{value}.';} ';
+		$iter->{eval_str} = ' sub \'.$package.\'::'.$iter->{name}.'(){return '.$iter->{value}.';} ';
+		
 	}
-	eval 'sub '.$package.'::import{
-		say "В импорт Start";
-		p @_;
+		eval 'sub '.$package.'::import{
+			
+			
+		for (@vars){
+			$_->{dropped}=0;
+		}
+		my $this_name = shift;
 		my $package = caller;
-		p $package;
+		if (not @_){
+		
 		eval \''.$eval_str.'\';
+		}else{
+			for my $get_str (@_){
+				if ( not(substr($get_str,0,1) eq ":")){
+					for my $var (@vars){
+						if ($var->{name} eq $get_str){
+							
+							eval \'sub \'.$package.\'::\'.$var->{name}.\'(){return $var->{value};} \';
+							$var->{dropped}=1;
+						}
+					}	
+				}elsif($get_str eq ":all"){
+					
+					for my $var (@vars){
+						
+						if ($var->{dropped} == 0){
+							eval \'sub \'.$package.\'::\'.$var->{name}.\'(){return $var->{value};} \';
+							$var->{dropped}=1;
+						}
+					}	
+				}elsif(substr($get_str,0,1) eq ":"){
+					
+					my @group_var = grep {":"."$_->{group}" eq $get_str}@vars;
+					for my $var (@group_var){
+						
+						if ($var->{dropped} == 0){
+							eval \'sub \'.$package.\'::\'.$var->{name}.\'(){return $var->{value};} \';
+							$var->{dropped}=1;
+						}
+					}	
+				}
+			}
+		}
 	}';
 }
 
