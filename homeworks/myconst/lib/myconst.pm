@@ -1,10 +1,11 @@
-package myconst;
 
+package myconst;
 
 use warnings;
 use Scalar::Util 'looks_like_number';
 use DDP;
 use 5.020;
+
 =encoding utf8
 
 =head1 NAME
@@ -16,13 +17,15 @@ myconst - pragma to create exportable and groupped constants
 Version 1.00
 
 =cut
+
 our $VERSION = '1.00';
 my @vars;
 #say 'в myconst';
 sub import{
 	#p @_;
+
 	my ($package, $filename, $line)= caller;
-	
+	p @_;
 	say $package;
 	my $this_name = shift;
 	return unless @_;
@@ -45,14 +48,22 @@ sub import{
 
 	}
 	#p @vars;
+	my $eval_str='';
 	my @export_vars;
 	for my $iter (@vars){
 		if ($iter->{name} =~ /[^a-zA-Z1-9_]/){
 			die;
 		}
 		eval 'sub '.$package.'::'.$iter->{name}.'(){ return $iter->{value};}';
-		
+		$eval_str.=' sub \'.$package.\'::'.$iter->{name}.'(){return '.$iter->{value}.';} ';
 	}
+	eval 'sub '.$package.'::import{
+		say "В импорт Start";
+		p @_;
+		my $package = caller;
+		p $package;
+		eval \''.$eval_str.'\';
+	}';
 }
 
 
